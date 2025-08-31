@@ -1,0 +1,7 @@
+{
+  "name": "Copy of IA Identificador de Plantas",
+  "description": "Uma aplicação web inteligente que usa a API Gemini do Google para analisar e identificar plantas a partir de uma imagem, seja por upload de arquivo ou usando a câmera do seu dispositivo.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
