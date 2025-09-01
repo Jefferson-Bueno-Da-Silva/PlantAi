@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Button } from './Button';
-import { CameraIcon, UploadIcon, XCircleIcon } from './Icon';
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Button } from "./Button";
+import { CameraIcon, UploadIcon, XCircleIcon } from "./Icon";
 
 interface ImageInputProps {
   onImageSelect: (imageDataUrl: string) => void;
@@ -8,8 +8,13 @@ interface ImageInputProps {
   currentImage: string | null;
 }
 
-export const ImageInput: React.FC<ImageInputProps> = ({ onImageSelect, onClear, currentImage }) => {
+export const ImageInput: React.FC<ImageInputProps> = ({
+  onImageSelect,
+  onClear,
+  currentImage,
+}) => {
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user"); // controle do tipo de câmera
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -17,20 +22,22 @@ export const ImageInput: React.FC<ImageInputProps> = ({ onImageSelect, onClear, 
     onClear();
     setIsCameraActive(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode },
+      });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      console.error("Error accessing camera:", err);
+      console.error("Erro ao acessar a câmera:", err);
       setIsCameraActive(false);
     }
-  }, [onClear]);
+  }, [onClear, facingMode]);
 
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
     setIsCameraActive(false);
@@ -41,7 +48,14 @@ export const ImageInput: React.FC<ImageInputProps> = ({ onImageSelect, onClear, 
       stopCamera();
     };
   }, [stopCamera]);
-  
+
+  // Alterna entre câmera frontal e traseira
+  const toggleCamera = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+    stopCamera();
+    setTimeout(() => startCamera(), 200); // reinicia com a nova câmera
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     stopCamera();
     const file = event.target.files?.[0];
@@ -58,13 +72,13 @@ export const ImageInput: React.FC<ImageInputProps> = ({ onImageSelect, onClear, 
 
   const handleCapture = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if(ctx) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg');
+        const dataUrl = canvas.toDataURL("image/jpeg");
         onImageSelect(dataUrl);
       }
       stopCamera();
@@ -76,22 +90,35 @@ export const ImageInput: React.FC<ImageInputProps> = ({ onImageSelect, onClear, 
   };
 
   const handleLocalClear = () => {
-      stopCamera();
-      onClear();
-  }
+    stopCamera();
+    onClear();
+  };
 
   return (
     <div className="flex flex-col h-full">
       <div className="relative w-full aspect-video bg-gray-700/50 rounded-lg flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600">
         {currentImage ? (
           <>
-            <img src={currentImage} alt="Selected" className="w-full h-full object-contain" />
-            <button onClick={handleLocalClear} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/80 transition-colors">
+            <img
+              src={currentImage}
+              alt="Selected"
+              className="w-full h-full object-contain"
+            />
+            <button
+              onClick={handleLocalClear}
+              className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/80 transition-colors"
+              aria-label="Remover imagem"
+            >
               <XCircleIcon className="w-6 h-6" />
             </button>
           </>
         ) : isCameraActive ? (
-          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="text-center text-gray-400">
             <p className="font-semibold">Sua Imagem Aqui</p>
@@ -106,11 +133,18 @@ export const ImageInput: React.FC<ImageInputProps> = ({ onImageSelect, onClear, 
         className="hidden"
         accept="image/png, image/jpeg, image/webp"
       />
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {isCameraActive ? (
           <>
-            <Button onClick={handleCapture} variant="primary">Capturar</Button>
-            <Button onClick={stopCamera} variant="secondary">Parar Câmera</Button>
+            <Button onClick={handleCapture} variant="primary">
+              Capturar
+            </Button>
+            <Button onClick={stopCamera} variant="secondary">
+              Parar Câmera
+            </Button>
+            <Button onClick={toggleCamera} variant="secondary">
+              Virar Câmera
+            </Button>
           </>
         ) : (
           <>
